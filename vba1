@@ -1,0 +1,45 @@
+Sub SaveAttachmentAndAppendData(Item As Outlook.MailItem)
+    Dim attachment As Outlook.Attachment
+    Dim excelApp As Object
+    Dim workbook As Object
+    Dim targetWorkbook As Object
+    Dim targetSheet As Object
+    Dim targetRow As Long
+    
+    ' Check if the email is unread (not processed)
+    If Not Item.UnRead Then Exit Sub
+    
+    ' Check if the email has attachments
+    If Item.Attachments.Count > 0 Then
+        ' Get the attachment
+        Set attachment = Item.Attachments(1) ' Assuming there's only one attachment
+        ' Save the attachment to a folder
+        attachment.SaveAsFile "C:\Path\To\Save\Previous_Day_INC_Ticket_Report.xlsx"
+        
+        ' Mark the email as read (processed)
+        Item.UnRead = False
+        
+        ' Excel setup
+        Set excelApp = CreateObject("Excel.Application")
+        Set workbook = excelApp.Workbooks.Open("C:\Path\To\Save\Previous_Day_INC_Ticket_Report.xlsx")
+        
+        ' Set the target workbook and sheet
+        Set targetWorkbook = excelApp.Workbooks.Open("C:\Path\To\Your\Target\Workbook.xlsx")
+        Set targetSheet = targetWorkbook.Sheets("Service Now")
+        
+        ' Find the next available row in columns A through D
+        targetRow = targetSheet.Cells(targetSheet.Rows.Count, 1).End(-4162).Row + 1
+        
+        ' Copy data from the source to the target
+        workbook.Sheets(1).UsedRange.Copy targetSheet.Cells(targetRow, 1)
+        
+        ' Save and close workbooks
+        targetWorkbook.Save
+        targetWorkbook.Close
+        workbook.Close
+        excelApp.Quit
+    End If
+    
+    ' Clean up
+    Set excelApp = Nothing
+End Sub
