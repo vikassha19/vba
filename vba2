@@ -2,6 +2,7 @@ Sub SplitWorkbookByDepartment()
     Dim wsTransit As Worksheet
     Dim wsInstructions As Worksheet
     Dim wsDataValidation As Worksheet
+    Dim tempWorkbook As Workbook
     Dim newWorkbook As Workbook
     Dim deptRange As Range
     Dim cell As Range
@@ -30,29 +31,38 @@ Sub SplitWorkbookByDepartment()
     Next cell
     On Error GoTo 0
     
+    ' Create a temporary workbook to hold the sheets
+    Set tempWorkbook = Workbooks.Add
+    wsInstructions.Copy Before:=tempWorkbook.Sheets(1)
+    wsDataValidation.Copy Before:=tempWorkbook.Sheets(1)
+    wsTransit.Copy Before:=tempWorkbook.Sheets(1)
+    
+    ' Delete the default sheets from the temporary workbook
+    Application.DisplayAlerts = False
+    Do While tempWorkbook.Sheets.Count > 3
+        tempWorkbook.Sheets(tempWorkbook.Sheets.Count).Delete
+    Loop
+    Application.DisplayAlerts = True
+    
     ' Loop through each unique department
     For Each dept In uniqueDepts
         ' Create a new workbook
         Set newWorkbook = Workbooks.Add
         
+        ' Copy the sheets from the temporary workbook to the new workbook
+        tempWorkbook.Sheets("Instructions - EN").Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
+        tempWorkbook.Sheets("data validation").Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
+        tempWorkbook.Sheets("Transit Access").Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
+        
         ' Remove the default sheets created with the new workbook
         Application.DisplayAlerts = False
-        While newWorkbook.Sheets.Count > 1
+        Do While newWorkbook.Sheets.Count > 3
             newWorkbook.Sheets(1).Delete
-        Wend
+        Loop
         Application.DisplayAlerts = True
         
-        ' Copy the "Instructions - EN" and "data validation" sheets to the new workbook
-        wsInstructions.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
-        wsDataValidation.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
-        
-        ' Copy the "Transit Access" sheet to the new workbook
-        wsTransit.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
-        
-        ' Rename the copied sheet to "Transit Access"
-        With newWorkbook.Sheets(newWorkbook.Sheets.Count)
-            .Name = "Transit Access"
-            ' Filter the new "Transit Access" sheet for the specific department
+        ' Filter the new "Transit Access" sheet for the specific department
+        With newWorkbook.Sheets("Transit Access")
             .Range("A1").AutoFilter Field:=2, Criteria1:=dept
             .Range("A1").CurrentRegion.SpecialCells(xlCellTypeVisible).Copy
             .Range("A1").PasteSpecial xlPasteValues
@@ -63,6 +73,9 @@ Sub SplitWorkbookByDepartment()
         newWorkbook.SaveAs ThisWorkbook.Path & "\" & dept & ".xlsx"
         newWorkbook.Close False
     Next dept
+    
+    ' Close and discard the temporary workbook
+    tempWorkbook.Close False
     
     MsgBox "Workbooks created for each unique department."
 End Sub
