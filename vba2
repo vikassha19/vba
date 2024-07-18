@@ -1,0 +1,63 @@
+Sub SplitWorkbookByDepartment()
+    Dim wsTransit As Worksheet
+    Dim wsInstructions As Worksheet
+    Dim wsDataValidation As Worksheet
+    Dim newWorkbook As Workbook
+    Dim deptRange As Range
+    Dim cell As Range
+    Dim uniqueDepts As Collection
+    Dim dept As Variant
+
+    ' Set the worksheets
+    Set wsTransit = ThisWorkbook.Sheets("Transit Access")
+    Set wsInstructions = ThisWorkbook.Sheets("Instructions - EN")
+    Set wsDataValidation = ThisWorkbook.Sheets("data validation")
+    
+    ' Get the range of departments
+    Set deptRange = wsTransit.Range("B2:B" & wsTransit.Cells(wsTransit.Rows.Count, "B").End(xlUp).Row)
+    
+    ' Create a collection to store unique departments
+    Set uniqueDepts = New Collection
+    
+    ' Loop through the department range and collect unique values
+    On Error Resume Next
+    For Each cell In deptRange
+        uniqueDepts.Add cell.Value, CStr(cell.Value)
+    Next cell
+    On Error GoTo 0
+    
+    ' Loop through each unique department
+    For Each dept In uniqueDepts
+        ' Create a new workbook
+        Set newWorkbook = Workbooks.Add
+        
+        ' Copy the "Instructions - EN" and "data validation" sheets to the new workbook
+        wsInstructions.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
+        wsDataValidation.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
+        
+        ' Add a new sheet for the department
+        wsTransit.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
+        newWorkbook.Sheets(newWorkbook.Sheets.Count).Name = dept
+        
+        ' Remove the default sheets created with the new workbook
+        Application.DisplayAlerts = False
+        While newWorkbook.Sheets.Count > 3
+            newWorkbook.Sheets(1).Delete
+        Wend
+        Application.DisplayAlerts = True
+        
+        ' Filter the new department sheet for the specific department
+        With newWorkbook.Sheets(dept)
+            .Range("A1").AutoFilter Field:=2, Criteria1:=dept
+            .Range("A1").CurrentRegion.SpecialCells(xlCellTypeVisible).Copy
+            .Range("A1").PasteSpecial xlPasteValues
+            .Range("A1").AutoFilter
+        End With
+        
+        ' Save the new workbook
+        newWorkbook.SaveAs ThisWorkbook.Path & "\" & dept & ".xlsx"
+        newWorkbook.Close False
+    Next dept
+    
+    MsgBox "Workbooks created for each unique department."
+End Sub
