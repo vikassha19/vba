@@ -1,19 +1,15 @@
 Sub SplitWorkbookByDepartment()
     Dim wsTransit As Worksheet
-    Dim wsInstructions As Worksheet
-    Dim wsDataValidation As Worksheet
-    Dim tempWorkbook As Workbook
-    Dim newWorkbook As Workbook
     Dim deptRange As Range
     Dim cell As Range
     Dim uniqueDepts As Collection
     Dim dept As Variant
     Dim lastRow As Long
+    Dim newWorkbook As Workbook
+    Dim wsNewTransit As Worksheet
 
-    ' Set the worksheets
+    ' Set the worksheet
     Set wsTransit = ThisWorkbook.Sheets("Transit Access")
-    Set wsInstructions = ThisWorkbook.Sheets("Instructions - EN")
-    Set wsDataValidation = ThisWorkbook.Sheets("data validation")
     
     ' Get the range of departments
     lastRow = wsTransit.Cells(wsTransit.Rows.Count, "B").End(xlUp).Row
@@ -31,51 +27,24 @@ Sub SplitWorkbookByDepartment()
     Next cell
     On Error GoTo 0
     
-    ' Create a temporary workbook to hold the sheets
-    Set tempWorkbook = Workbooks.Add
-    wsInstructions.Copy Before:=tempWorkbook.Sheets(1)
-    wsDataValidation.Copy Before:=tempWorkbook.Sheets(1)
-    wsTransit.Copy Before:=tempWorkbook.Sheets(1)
-    
-    ' Delete the default sheets from the temporary workbook
-    Application.DisplayAlerts = False
-    Do While tempWorkbook.Sheets.Count > 3
-        tempWorkbook.Sheets(tempWorkbook.Sheets.Count).Delete
-    Loop
-    Application.DisplayAlerts = True
-    
     ' Loop through each unique department
     For Each dept In uniqueDepts
-        ' Create a new workbook
-        Set newWorkbook = Workbooks.Add
+        ' Create a new workbook and copy all sheets from the original workbook
+        ThisWorkbook.Sheets.Copy
+        Set newWorkbook = ActiveWorkbook
         
-        ' Copy the sheets from the temporary workbook to the new workbook
-        tempWorkbook.Sheets("Instructions - EN").Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
-        tempWorkbook.Sheets("data validation").Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
-        tempWorkbook.Sheets("Transit Access").Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
-        
-        ' Remove the default sheets created with the new workbook
-        Application.DisplayAlerts = False
-        Do While newWorkbook.Sheets.Count > 3
-            newWorkbook.Sheets(1).Delete
-        Loop
-        Application.DisplayAlerts = True
-        
-        ' Filter the new "Transit Access" sheet for the specific department
-        With newWorkbook.Sheets("Transit Access")
-            .Range("A1").AutoFilter Field:=2, Criteria1:=dept
-            .Range("A1").CurrentRegion.SpecialCells(xlCellTypeVisible).Copy
-            .Range("A1").PasteSpecial xlPasteValues
-            .Range("A1").AutoFilter
+        ' Filter and delete rows not matching the department in "Transit Access" sheet
+        Set wsNewTransit = newWorkbook.Sheets("Transit Access")
+        With wsNewTransit
+            .Range("A1").AutoFilter Field:=2, Criteria1:="<>" & dept
+            .Range("A2:A" & .Rows.Count).SpecialCells(xlCellTypeVisible).EntireRow.Delete
+            .AutoFilterMode = False
         End With
         
         ' Save the new workbook
         newWorkbook.SaveAs ThisWorkbook.Path & "\" & dept & ".xlsx"
         newWorkbook.Close False
     Next dept
-    
-    ' Close and discard the temporary workbook
-    tempWorkbook.Close False
     
     MsgBox "Workbooks created for each unique department."
 End Sub
