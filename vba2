@@ -35,9 +35,9 @@ Sub SplitWorkbookByDepartment()
         wsInstructions.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
         wsDataValidation.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
         
-        ' Add a new sheet for the department
+        ' Copy the "Transit Access" sheet to the new workbook
         wsTransit.Copy After:=newWorkbook.Sheets(newWorkbook.Sheets.Count)
-        newWorkbook.Sheets(newWorkbook.Sheets.Count).Name = dept
+        newWorkbook.Sheets(newWorkbook.Sheets.Count).Name = "Transit Access"
         
         ' Remove the default sheets created with the new workbook
         Application.DisplayAlerts = False
@@ -46,8 +46,8 @@ Sub SplitWorkbookByDepartment()
         Wend
         Application.DisplayAlerts = True
         
-        ' Filter the new department sheet for the specific department
-        With newWorkbook.Sheets(dept)
+        ' Filter the new "Transit Access" sheet for the specific department
+        With newWorkbook.Sheets("Transit Access")
             .Range("A1").AutoFilter Field:=2, Criteria1:=dept
             .Range("A1").CurrentRegion.SpecialCells(xlCellTypeVisible).Copy
             .Range("A1").PasteSpecial xlPasteValues
